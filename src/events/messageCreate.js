@@ -228,3 +228,96 @@ async function handleLeveling(message, client) {
     logger.error('Error handling leveling for message:', error);
   }
 }
+import { Events } from 'discord.js';
+import { botConfig } from '../config/config.js';
+import { isAllowedCommandChannel } from '../utils/channelRestriction.js';
+import { getAfk, clearAfk, getAfkBulk } from '../services/afkService.js';
+import { handleAfkTrigger } from '../commands/afk.js';
+
+export const name = Events.MessageCreate;
+
+export async function execute(message) {
+  // Ignore bots/webhooks entirely (including our own messages).
+  if (message.author.bot) return;
+  if (!message.guild) return; // ignore DMs for this feature set
+
+  // -------------------------------------------------------------
+  // 1) AFK AUTO-REMOVAL — runs server-wide, NOT restricted to #bot.
+  //    "If an AFK user sends a message anywhere in the server..."
+  // -------------------------------------------------------------
+  if (botConfig.features.afk) {
+    const existing = await getAfk(message.author.id);
+    if (existing) {
+      await clearAfk(message.author.id);
+      await message.reply({
+        content: `👋 Welcome back, ${message.author}! I've removed your AFK status.`,
+        allowedMentions: { repliedUser: false },
+      }).catch(() => {});
+      // Note: we intentionally do NOT `return` here — a returning user
+      // might also be pinging other AFK users in the same message.
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 2) AFK MENTION LISTENER — also server-wide.
+  //    "If a message pings a user who is AFK, reply with their reason."
+  // -------------------------------------------------------------
+  if (botConfig.features.afk && message.mentions.users.size > 0) {
+    const mentionedIds = [...message.mentions.users.keys()]
+      // Don't bother re-notifying about the author themself (already
+      // handled/cleared above) or bots.
+      .filter((id) => id !== message.author.id);
+
+    if (mentionedIds.length) {
+      const afkUsers = await getAfkBulk(mentionedIds);
+      for (const row of afkUsers) {
+        const user = message.mentions.users.get(row.user_id);
+        if (!user) continue;
+        await message.reply({
+          content: `💤 **${user.username}** is currently AFK: ${row.reason}`,
+          allowedMentions: { repliedUser: false, users: [] },
+        }).catch(() => {});
+      }
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 3) PREFIX-STYLE AFK TRIGGER: "dsp afk [reason]"
+  //    This is a *command*, so it IS subject to channel restriction.
+  // -------------------------------------------------------------
+  const content = message.content.trim();
+  const triggerPhrase = botConfig.afk.triggerPhrase; // "dsp afk"
+
+  if (botConfig.features.afk && content.toLowerCase().startsWith(triggerPhrase)) {
+    if (!isAllowedCommandChannel(message.channel)) {
+      await message.reply({
+        content: `🚫 ${botConfig.channelRestriction.restrictedMessage}`,
+        allowedMentions: { repliedUser: false },
+      }).catch(() => {});
+      return;
+    }
+
+    const rawArgs = content.slice(triggerPhrase.length).trim();
+    await handleAfkTrigger(message, rawArgs);
+    return; // handled — don't fall through to generic prefix-command parsing
+  }
+
+  // -------------------------------------------------------------
+  // 4) GENERIC PREFIX COMMAND HANDLING (your existing "!command" logic)
+  //    Wrap your existing command dispatch with the same restriction.
+  // -------------------------------------------------------------
+  const prefix = botConfig.commands.prefix;
+  if (content.startsWith(prefix)) {
+    if (!isAllowedCommandChannel(message.channel)) {
+      // Silently ignore, or reply — your call. Replying is usually
+      // friendlier so users aren't confused why nothing happened.
+      await message.reply({
+        content: `🚫 ${botConfig.channelRestriction.restrictedMessage}`,
+        allowedMentions: { repliedUser: false },
+      }).catch(() => {});
+      return;
+    }
+
+    // ... your existing prefix command parsing/dispatch goes here ...
+  }
+}
