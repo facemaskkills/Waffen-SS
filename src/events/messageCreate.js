@@ -64,9 +64,9 @@ async function handleAfkAutoClearAndMentions(message) {
 
   try {
     // 1) Auto-clear: if the sender was AFK, clear it and welcome them back.
-    const existing = await getAfk(message.author.id);
+    const existing = await getAfk(message.guild.id, message.author.id);
     if (existing) {
-      await clearAfk(message.author.id);
+      await clearAfk(message.guild.id, message.author.id);
       await message.reply({
         content: `👋 Welcome back, ${message.author}! I've removed your AFK status.`,
         allowedMentions: { repliedUser: false },
@@ -80,7 +80,7 @@ async function handleAfkAutoClearAndMentions(message) {
       );
 
       if (mentionedIds.length) {
-        const afkUsers = await getAfkBulk(mentionedIds);
+        const afkUsers = await getAfkBulk(message.guild.id, mentionedIds);
         for (const row of afkUsers) {
           const user = message.mentions.users.get(row.user_id);
           if (!user) continue;
