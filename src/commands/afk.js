@@ -6,7 +6,7 @@
 // messageCreate.js). Exporting the logic here just keeps things tidy.
 
 import { EmbedBuilder } from 'discord.js';
-import { botConfig, getColor } from '../config/config.js';
+import { botConfig, getColor } from '../config/bot.js';
 import { setAfk } from '../services/afkService.js';
 
 /**
