@@ -19,7 +19,7 @@ import {
 } from '../services/countingGameService.js';
 
 // --- NEW: AFK + channel restriction imports ---
-import { botConfig } from '../config/config.js';
+import { botConfig } from '../config/bot.js';
 import { isAllowedCommandChannel } from '../utils/channelRestriction.js';
 import { getAfk, clearAfk, getAfkBulk } from '../services/afkService.js';
 import { handleAfkTrigger } from '../commands/afk.js';
