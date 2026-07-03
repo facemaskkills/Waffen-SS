@@ -7,7 +7,7 @@
 // which is the standard pattern for Railway Postgres + node-postgres).
 
 import { pool } from '../database/pool.js'; // <-- adjust path to your real pool
-import { botConfig } from '../config/config.js';
+import { botConfig } from '../config/bot.js';
 
 const TABLE = botConfig.afk.tableName;
 
