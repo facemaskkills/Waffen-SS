@@ -16,7 +16,7 @@ import { setAfk } from '../services/afkService.js';
 export async function handleAfkTrigger(message, rawArgs) {
   const reason = rawArgs?.length ? rawArgs : botConfig.afk.defaultReason;
 
-  await setAfk(message.author.id, message.guild.id, reason);
+  await setAfk(message.guild.id, message.author.id, reason);
 
   const embed = new EmbedBuilder()
     .setColor(getColor('afk'))
