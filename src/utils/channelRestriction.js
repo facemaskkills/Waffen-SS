@@ -4,7 +4,7 @@
 // interactionCreate.js (slash commands) to enforce requirement #2:
 // commands / bot output only allowed in the designated "bot" channel.
 
-import { botConfig } from '../config/config.js';
+import { botConfig } from '../config/bot.js';
 
 /**
  * @param {import('discord.js').TextBasedChannel} channel
